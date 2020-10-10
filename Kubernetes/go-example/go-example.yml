@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: go-example
+  name: deployment-go
+  labels:
+    app: go-example
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: go-example
+  template:
+    metadata:
+      labels:
+        app: go-example
+    spec:
+      containers:
+        - name: go-example
+          image: ianv97/go-example:latest
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: FOO
+              valueFrom:
+                configMapKeyRef:
+                  name: configmap-go
+                  key: FOO
+            - name: BAR
+              valueFrom:
+                configMapKeyRef:
+                  name: configmap-go
+                  key: BAR
+            - name: SUPERSECRETUSER
+              valueFrom:
+                secretKeyRef:
+                  name: secret-go
+                  key: SUPERSECRETUSER
+            - name: SUPERSECRETPASS
+              valueFrom:
+                secretKeyRef:
+                  name: secret-go
+                  key: SUPERSECRETPASS
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: go-example
+  name: ingress-go
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /go
+            pathType: Prefix
+            backend:
+              service:
+                name: service-go
+                port:
+                  number: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: go-example
+  name: service-go
+spec:
+  selector:
+    app: go-example
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: go-example
+  name: configmap-go
+data:
+  FOO: 'Un valor de FOO'
+  BAR: 'Un valor de BAR'
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: go-example
+  name: secret-go
+type: Opaque
+data:
+  SUPERSECRETUSER: U2VjcmV0IFVzZXI=
+  SUPERSECRETPASS: U2VjcmV0IFBhc3M=
